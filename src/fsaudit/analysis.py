@@ -42,15 +42,14 @@ def diff(conn: sqlite3.Connection, old_id: int, new_id: int) -> Diff:
     old = {row["path"]: row["hash"] for row in files_of_scan(conn, old_id)}
     new = {row["path"]: row["hash"] for row in files_of_scan(conn, new_id)}
     result = Diff()
-    for path in sorted(old.keys() & new.keys()):
-        if old[path] != new[path]:
-            result.modified.append(path)
-    removed_by_hash = {old[path]: path for path in old.keys() - new.keys()}
+    result.modified = [p for p in sorted(old.keys() & new.keys()) if old[p] != new[p]]
+    gone = sorted(old.keys() - new.keys())
     for path in sorted(new.keys() - old.keys()):
-        old_path = removed_by_hash.pop(new[path], None)
-        if old_path is None:
+        match = next((g for g in gone if old[g] == new[path]), None)
+        if match is None:
             result.added.append(path)
         else:
-            result.moved.append((old_path, path))
-    result.removed = sorted(removed_by_hash.values())
+            gone.remove(match)
+            result.moved.append((match, path))
+    result.removed = gone
     return result

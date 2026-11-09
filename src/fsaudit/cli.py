@@ -87,20 +87,18 @@ def dupes(scan_id: ScanOption = None) -> None:
     with closing(database.connect(settings.db_path)) as conn:
         chosen = pick_scan(conn, scan_id)
         rows = analysis.duplicates(conn, chosen)
-    recoverable = sum(r["size"] * (r["copies"] - 1) for r in rows)
+    table_rows = []
+    recoverable = 0
+    for r in rows:
+        saved = r["size"] * (r["copies"] - 1)
+        recoverable += saved
+        table_rows.append(
+            [r["hash"][:12], str(r["copies"]), human_size(r["size"]), human_size(saved), r["paths"]]
+        )
     print_table(
         f"Doublons du scan #{chosen}",
         ["Hash", "Copies", "Taille", "Récupérable", "Fichiers"],
-        [
-            [
-                r["hash"][:12],
-                str(r["copies"]),
-                human_size(r["size"]),
-                human_size(r["size"] * (r["copies"] - 1)),
-                r["paths"],
-            ]
-            for r in rows
-        ],
+        table_rows,
     )
     console.print(f"Espace récupérable total : {human_size(recoverable)}")
 

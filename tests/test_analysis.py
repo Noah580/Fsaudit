@@ -87,3 +87,12 @@ def test_latest_scan_id(conn: sqlite3.Connection) -> None:
     database.create_scan(conn, Path("root"))
     second = database.create_scan(conn, Path("root"))
     assert database.latest_scan_id(conn) == second
+
+
+def test_diff_two_identical_files_removed(conn: sqlite3.Connection) -> None:
+    old = database.create_scan(conn, Path("root"))
+    database.insert_files(conn, old, [info("a.txt", 1, "same"), info("b.txt", 1, "same")])
+    new = database.create_scan(conn, Path("root"))
+    database.insert_files(conn, new, [])
+    result = analysis.diff(conn, old, new)
+    assert result.removed == ["a.txt", "b.txt"]
