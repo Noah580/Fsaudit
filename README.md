@@ -36,7 +36,7 @@ Le fichier `.env` (copier `.env.example`) est chargé par python-dotenv au déma
 ```
 src/fsaudit/
   cli.py        les 6 commandes Typer + affichage des tableaux rich
-  config.py     lecture du .env -> dataclass Settings
+  config.py     lecture du .env -> 4 constantes (DB_PATH, LOG_PATH, LOG_LEVEL, EXCLUDE)
   logs.py       logging vers la console (WARNING+) et le fichier .log (tout)
   models.py     dataclass FileInfo = une ligne de la table files
   scanner.py    parcours récursif, exclusions, hash SHA-256, type MIME
@@ -82,7 +82,7 @@ Déroulé de la soutenance (15 min) :
 - **Erreurs** : on tente l'opération et on attrape `OSError` (style EAFP). Le fichier fautif est loggé en WARNING et le scan continue. On n'attrape jamais `except:` générique.
 - **Logging** : un logger par module (`logging.getLogger(__name__)`), la console ne montre que les problèmes (WARNING et plus), le fichier `.log` garde tout. Les valeurs sont passées en arguments `%s`, pas en f-string.
 - **python-dotenv** : configuration sans toucher au code ; `.env` est dans le `.gitignore`, `.env.example` est versionné.
-- **`@dataclass(frozen=True)`** pour `FileInfo` et `Settings` : juste un conteneur de données typé, immuable, avec `__init__` et `__repr__` générés.
+- **`@dataclass(frozen=True)`** pour `FileInfo` : juste un conteneur de données typé, immuable, avec `__init__` et `__repr__` générés.
 - **diff par ensembles** : `old.keys() & new.keys()` = présents des deux côtés (comparer le hash → modifié), `old - new` = disparus, `new - old` = apparus. Un apparu dont le hash correspond à un disparu est un déplacement.
 - **Tests pytest** avec `tmp_path` (vrais fichiers temporaires), `monkeypatch` (simuler une `PermissionError`) et `CliRunner` de Typer (tester les commandes de bout en bout).
 - **Qualité** : `ruff check` et `ruff format` pour PEP 8, `mypy --strict` pour le typage.

@@ -3,16 +3,15 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from fsaudit import cli
-from fsaudit.config import Settings
+from fsaudit import cli, config
 
 runner = CliRunner()
 
 
 @pytest.fixture
 def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    settings = Settings(tmp_path / "test.db", tmp_path / "test.log", "INFO", [".git"])
-    monkeypatch.setattr(cli, "settings", settings)
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "test.db")
+    monkeypatch.setattr(config, "LOG_PATH", tmp_path / "test.log")
     data = tmp_path / "data"
     data.mkdir()
     (data / "a.txt").write_text("hello")
@@ -62,5 +61,5 @@ def test_analysis_without_scan_fails(workspace: Path) -> None:
 
 def test_log_file_is_written(workspace: Path) -> None:
     runner.invoke(cli.app, ["scan", str(workspace)])
-    log = cli.settings.log_path.read_text(encoding="utf-8")
+    log = config.LOG_PATH.read_text(encoding="utf-8")
     assert "Début du scan" in log

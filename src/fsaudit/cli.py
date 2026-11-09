@@ -7,18 +7,16 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from fsaudit import analysis, database, scanner
-from fsaudit.config import load_settings
+from fsaudit import analysis, config, database, scanner
 from fsaudit.logs import setup_logging
 
 app = typer.Typer(help="Audit de fichiers : scan, doublons, top, répartition, diff.")
 console = Console()
-settings = load_settings()
 
 
 @app.callback()
 def main() -> None:
-    setup_logging(settings.log_path, settings.log_level)
+    setup_logging(config.LOG_PATH, config.LOG_LEVEL)
 
 
 def human_size(size: float) -> str:
@@ -62,9 +60,9 @@ def scan(
     ] = None,
 ) -> None:
     """Parcourt un dossier et indexe ses fichiers dans SQLite."""
-    with closing(database.connect(settings.db_path)) as conn:
+    with closing(database.connect(config.DB_PATH)) as conn:
         scan_id = database.create_scan(conn, root)
-        files = scanner.scan(root, settings.exclude + (exclude or []), include or [])
+        files = scanner.scan(root, config.EXCLUDE + (exclude or []), include or [])
         count = database.insert_files(conn, scan_id, files)
     console.print(f"Scan #{scan_id} : {count} fichiers indexés depuis {root}")
 
@@ -72,7 +70,7 @@ def scan(
 @app.command()
 def scans() -> None:
     """Liste les scans enregistrés."""
-    with closing(database.connect(settings.db_path)) as conn:
+    with closing(database.connect(config.DB_PATH)) as conn:
         rows = database.list_scans(conn)
     print_table(
         "Scans",
@@ -84,7 +82,7 @@ def scans() -> None:
 @app.command()
 def dupes(scan_id: ScanOption = None) -> None:
     """Détecte les doublons et l'espace récupérable."""
-    with closing(database.connect(settings.db_path)) as conn:
+    with closing(database.connect(config.DB_PATH)) as conn:
         chosen = pick_scan(conn, scan_id)
         rows = analysis.duplicates(conn, chosen)
     table_rows = []
@@ -109,7 +107,7 @@ def top(
     scan_id: ScanOption = None,
 ) -> None:
     """Affiche les fichiers les plus volumineux."""
-    with closing(database.connect(settings.db_path)) as conn:
+    with closing(database.connect(config.DB_PATH)) as conn:
         chosen = pick_scan(conn, scan_id)
         rows = analysis.biggest(conn, chosen, limit)
     print_table(
@@ -122,7 +120,7 @@ def top(
 @app.command()
 def ext(scan_id: ScanOption = None) -> None:
     """Répartition de l'espace par extension."""
-    with closing(database.connect(settings.db_path)) as conn:
+    with closing(database.connect(config.DB_PATH)) as conn:
         chosen = pick_scan(conn, scan_id)
         rows = analysis.by_extension(conn, chosen)
     print_table(
@@ -138,7 +136,7 @@ def diff(
     new: Annotated[int, typer.Argument(help="Id du scan récent")],
 ) -> None:
     """Compare deux scans : ajoutés, supprimés, modifiés, déplacés."""
-    with closing(database.connect(settings.db_path)) as conn:
+    with closing(database.connect(config.DB_PATH)) as conn:
         result = analysis.diff(conn, old, new)
     rows = [["ajouté", path] for path in result.added]
     rows += [["supprimé", path] for path in result.removed]
