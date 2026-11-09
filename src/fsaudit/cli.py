@@ -160,11 +160,5 @@ def backup(
                 "[red]Le dossier de sauvegarde ne doit pas être dans le dossier scanné.[/red]"
             )
             raise typer.Exit(code=1)
-        result = run_backup(conn, chosen, source, dest)
-    console.print(
-        f"Backup du scan #{chosen} vers {dest} : {len(result.copied)} copiés, "
-        f"{len(result.skipped)} déjà à jour, {len(result.failed)} en erreur"
-    )
-    if result.failed:
-        print_table("Fichiers non copiés", ["Fichier"], [[path] for path in result.failed])
-        raise typer.Exit(code=1)
+        copied, skipped = run_backup(conn, chosen, source, dest)
+    console.print(f"Backup vers {dest} : {copied} copiés, {skipped} déjà à jour")
