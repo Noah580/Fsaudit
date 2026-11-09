@@ -49,6 +49,24 @@ Un fichier = une responsabilité (principe SRP du cours). Le flux est toujours l
 
 Base de données : une table `scans` (id, dossier, date) et une table `files` (une ligne par fichier, liée à un scan). Garder plusieurs scans permet le `diff`.
 
+## Répartition des tâches (binôme)
+
+| | Matthieu : indexation | Noah : analyses et CLI |
+| --- | --- | --- |
+| Code | `scanner.py`, `database.py`, `models.py`, `config.py`, `logs.py` | `analysis.py`, `cli.py`, `__main__.py` |
+| Tests | `tests/test_scanner.py` | `tests/test_analysis.py`, `tests/test_cli.py` |
+| À expliquer | parcours `os.walk` et exclusions, hash SHA-256 par blocs, type MIME, schéma SQLite et requêtes paramétrées, `.env`, logging console/fichier, gestion des erreurs sans arrêt du scan | requêtes doublons / top / extensions (`GROUP BY`), algorithme du diff par ensembles, commandes Typer et options, tableaux rich, `CliRunner` dans les tests |
+
+En commun : `pyproject.toml`, ruff / mypy, README, dépôt GitHub.
+
+Déroulé de la soutenance (15 min) :
+
+1. Noah (2 min) : présentation de l'outil et démo live (`scan`, `dupes`, `top`, `ext`, `diff`).
+2. Matthieu (4 min) : architecture, flux scan → SQLite, gestion des erreurs, configuration et logs.
+3. Noah (4 min) : les analyses SQL, le diff, la couche CLI.
+4. Matthieu (2 min) : tests, ruff, mypy, limites et pistes d'extension.
+5. Les deux (3 min) : questions.
+
 ## Choix techniques et justification
 
 - **uv + structure `src/`** : demandé par le sujet. `uv run` crée et synchronise le venv tout seul, `uv.lock` garantit les mêmes versions chez les deux membres du binôme.
