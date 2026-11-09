@@ -42,17 +42,6 @@ def test_scan_then_analyses(workspace: Path) -> None:
     assert "Scans" in result.output
 
 
-def test_diff_between_two_scans(workspace: Path) -> None:
-    runner.invoke(cli.app, ["scan", str(workspace)])
-    (workspace / "a.txt").unlink()
-    (workspace / "c.txt").write_text("new")
-    runner.invoke(cli.app, ["scan", str(workspace)])
-    result = runner.invoke(cli.app, ["diff", "1", "2"])
-    assert result.exit_code == 0
-    assert "c.txt" in result.output
-    assert "a.txt" in result.output
-
-
 def test_analysis_without_scan_fails(workspace: Path) -> None:
     result = runner.invoke(cli.app, ["top"])
     assert result.exit_code == 1
@@ -70,10 +59,6 @@ def test_unknown_scan_fails(workspace: Path) -> None:
     result = runner.invoke(cli.app, ["top", "--scan", "42"])
     assert result.exit_code == 1
     assert "Scan #42 introuvable" in result.output
-
-    result = runner.invoke(cli.app, ["diff", "1", "99"])
-    assert result.exit_code == 1
-    assert "Scan #99 introuvable" in result.output
 
 
 def test_top_rejects_negative_limit(workspace: Path) -> None:

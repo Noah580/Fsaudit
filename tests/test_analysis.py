@@ -52,47 +52,8 @@ def test_by_extension(conn: sqlite3.Connection) -> None:
     assert rows[0]["total"] == 40
 
 
-def test_diff(conn: sqlite3.Connection) -> None:
-    old = database.create_scan(conn, Path("root"))
-    database.insert_files(
-        conn,
-        old,
-        [
-            info("same.txt", 1, "s"),
-            info("changed.txt", 1, "before"),
-            info("gone.txt", 1, "g"),
-            info("old_place.txt", 1, "m"),
-        ],
-    )
-    new = database.create_scan(conn, Path("root"))
-    database.insert_files(
-        conn,
-        new,
-        [
-            info("same.txt", 1, "s"),
-            info("changed.txt", 1, "after"),
-            info("fresh.txt", 1, "f"),
-            info("new_place.txt", 1, "m"),
-        ],
-    )
-    result = analysis.diff(conn, old, new)
-    assert result.added == ["fresh.txt"]
-    assert result.removed == ["gone.txt"]
-    assert result.modified == ["changed.txt"]
-    assert result.moved == [("old_place.txt", "new_place.txt")]
-
-
 def test_latest_scan_id(conn: sqlite3.Connection) -> None:
     assert database.latest_scan_id(conn) is None
     database.create_scan(conn, Path("root"))
     second = database.create_scan(conn, Path("root"))
     assert database.latest_scan_id(conn) == second
-
-
-def test_diff_two_identical_files_removed(conn: sqlite3.Connection) -> None:
-    old = database.create_scan(conn, Path("root"))
-    database.insert_files(conn, old, [info("a.txt", 1, "same"), info("b.txt", 1, "same")])
-    new = database.create_scan(conn, Path("root"))
-    database.insert_files(conn, new, [])
-    result = analysis.diff(conn, old, new)
-    assert result.removed == ["a.txt", "b.txt"]

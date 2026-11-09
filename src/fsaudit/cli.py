@@ -11,7 +11,7 @@ from fsaudit import analysis, config, database, scanner
 from fsaudit.backup import backup as run_backup
 from fsaudit.logs import setup_logging
 
-app = typer.Typer(help="Audit de fichiers : scan, doublons, top, répartition, diff, backup.")
+app = typer.Typer(help="Audit de fichiers : scan, doublons, top, répartition, backup.")
 console = Console()
 
 
@@ -144,23 +144,6 @@ def ext(scan_id: ScanOption = None) -> None:
         ["Extension", "Fichiers", "Taille totale"],
         [[r["extension"] or "(aucune)", str(r["count"]), human_size(r["total"])] for r in rows],
     )
-
-
-@app.command()
-def diff(
-    old: Annotated[int, typer.Argument(help="Id du scan de référence")],
-    new: Annotated[int, typer.Argument(help="Id du scan récent")],
-) -> None:
-    """Compare deux scans : ajoutés, supprimés, modifiés, déplacés."""
-    with closing(database.connect(config.DB_PATH)) as conn:
-        check_scan_exists(conn, old)
-        check_scan_exists(conn, new)
-        result = analysis.diff(conn, old, new)
-    rows = [["ajouté", path] for path in result.added]
-    rows += [["supprimé", path] for path in result.removed]
-    rows += [["modifié", path] for path in result.modified]
-    rows += [["déplacé", f"{before} -> {after}"] for before, after in result.moved]
-    print_table(f"Diff scan #{old} -> #{new}", ["Changement", "Fichier"], rows)
 
 
 @app.command()
