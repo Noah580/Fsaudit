@@ -80,3 +80,19 @@ def test_top_rejects_negative_limit(workspace: Path) -> None:
     runner.invoke(cli.app, ["scan", str(workspace)])
     result = runner.invoke(cli.app, ["top", "-n", "-1"])
     assert result.exit_code == 2
+
+
+def test_backup_command(workspace: Path, tmp_path: Path) -> None:
+    runner.invoke(cli.app, ["scan", str(workspace)])
+    dest = tmp_path / "save"
+    result = runner.invoke(cli.app, ["backup", str(dest)])
+    assert result.exit_code == 0
+    assert "3 copiés" in result.output
+    result = runner.invoke(cli.app, ["backup", str(dest)])
+    assert "3 déjà à jour" in result.output
+
+
+def test_backup_refuses_dest_inside_source(workspace: Path) -> None:
+    runner.invoke(cli.app, ["scan", str(workspace)])
+    result = runner.invoke(cli.app, ["backup", str(workspace / "save")])
+    assert result.exit_code == 1

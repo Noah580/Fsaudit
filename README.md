@@ -16,7 +16,10 @@ uv run fsaudit dupes
 uv run fsaudit top -n 10
 uv run fsaudit ext
 uv run fsaudit diff 1 2
+uv run fsaudit backup ~/Sauvegarde
 ```
+
+Sur macOS / Linux, le dossier s'écrit par exemple `~/Documents` au lieu de `C:\Users\moi\Documents`.
 
 Chaque commande d'analyse travaille par défaut sur le dernier scan, ou sur un scan précis avec `--scan 3`.
 
@@ -35,14 +38,15 @@ Le fichier `.env` (copier `.env.example`) est chargé par python-dotenv au déma
 
 ```
 src/fsaudit/
-  cli.py        les 6 commandes Typer + affichage des tableaux rich
+  cli.py        les 7 commandes Typer + affichage des tableaux rich
   config.py     lecture du .env -> 4 constantes (DB_PATH, LOG_PATH, LOG_LEVEL, EXCLUDE)
   logs.py       logging vers la console (WARNING+) et le fichier .log (tout)
   models.py     dataclass FileInfo = une ligne de la table files
   scanner.py    parcours récursif, exclusions, hash SHA-256, type MIME
   database.py   schéma SQLite, insertion, liste des scans
   analysis.py   les 3 analyses : doublons, top/extensions, diff
-tests/          un fichier de tests par couche (scanner, analyse, cli)
+  backup.py     extension : copie des fichiers d'un scan vers un dossier de sauvegarde
+tests/          un fichier de tests par couche (scanner, analyse, backup, cli)
 ```
 
 Un fichier = une responsabilité (principe SRP du cours). Le flux est toujours le même : `cli.py` lit les options, appelle `scanner`/`database`/`analysis`, puis affiche.
@@ -53,9 +57,9 @@ Base de données : une table `scans` (id, dossier, date) et une table `files` (u
 
 | | Matthieu : indexation | Noah : analyses et CLI |
 | --- | --- | --- |
-| Code | `scanner.py`, `database.py`, `models.py`, `config.py`, `logs.py` | `analysis.py`, `cli.py`, `__main__.py` |
-| Tests | `tests/test_scanner.py` | `tests/test_analysis.py`, `tests/test_cli.py` |
-| À expliquer | parcours `os.walk` et exclusions, hash SHA-256, type MIME, schéma SQLite et requêtes paramétrées, `.env`, logging console/fichier, gestion des erreurs sans arrêt du scan | requêtes doublons / top / extensions (`GROUP BY`), algorithme du diff par ensembles, commandes Typer et options, tableaux rich, `CliRunner` dans les tests |
+| Code | `scanner.py`, `database.py`, `models.py`, `config.py`, `logs.py` | `analysis.py`, `cli.py`, `__main__.py`, `backup.py` |
+| Tests | `tests/test_scanner.py` | `tests/test_analysis.py`, `tests/test_cli.py`, `tests/test_backup.py` |
+| À expliquer | parcours `os.walk` et exclusions, hash SHA-256, type MIME, schéma SQLite et requêtes paramétrées, `.env`, logging console/fichier, gestion des erreurs sans arrêt du scan | requêtes doublons / top / extensions (`GROUP BY`), algorithme du diff par ensembles, commandes Typer et options, tableaux rich, `CliRunner` dans les tests, extension `backup` |
 
 En commun : `pyproject.toml`, ruff / mypy, README, dépôt GitHub.
 
@@ -96,9 +100,19 @@ uv run ruff format --check .
 uv run mypy
 ```
 
+## Extension réalisée : `fsaudit backup`
+
+`fsaudit backup <dossier> [--scan N]` copie tous les fichiers d'un scan (par défaut le dernier) vers un dossier de sauvegarde, en gardant l'arborescence.
+
+- **Sauvegarde incrémentale grâce au hash** : si le fichier existe déjà dans la sauvegarde avec le même SHA-256 que dans le scan, il n'est pas recopié. Relancer un backup ne copie donc que ce qui a changé. On réutilise le hash déjà calculé au scan au lieu d'en inventer un autre critère (date, taille) moins fiable.
+- **`shutil.copy2`** : copie le contenu et conserve la date de modification du fichier.
+- **Erreurs** : un fichier impossible à copier (supprimé depuis le scan, droits) est loggé en WARNING et le backup continue ; la commande liste ces fichiers et se termine avec le code 1.
+- **Sécurité** : le dossier de sauvegarde ne peut pas être dans le dossier scanné, sinon chaque nouveau scan indexerait la sauvegarde elle-même.
+- Logique dans `backup.py` (même découpage que `analysis.py`), la CLI ne fait qu'appeler et afficher. Testé dans `tests/test_backup.py` et `tests/test_cli.py`.
+
 ## Pistes d'extension
 
-Export JSON/CSV d'une analyse, commande `backup` (copie des fichiers vers un dossier avec `shutil`), scan en threads pour les gros disques (I/O bound), barre de progression `tqdm`.
+Export JSON/CSV d'une analyse, scan en threads pour les gros disques (I/O bound), barre de progression `tqdm`.
 
 ## Questions probables en soutenance
 

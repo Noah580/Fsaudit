@@ -8,9 +8,10 @@ from rich.console import Console
 from rich.table import Table
 
 from fsaudit import analysis, config, database, scanner
+from fsaudit.backup import backup as run_backup
 from fsaudit.logs import setup_logging
 
-app = typer.Typer(help="Audit de fichiers : scan, doublons, top, répartition, diff.")
+app = typer.Typer(help="Audit de fichiers : scan, doublons, top, répartition, diff, backup.")
 console = Console()
 
 
@@ -36,10 +37,16 @@ def print_table(title: str, columns: list[str], rows: list[list[str]]) -> None:
     console.print(table)
 
 
+def scan_root(conn: sqlite3.Connection, scan_id: int) -> Path:
+    for row in database.list_scans(conn):
+        if row["id"] == scan_id:
+            return Path(row["root"])
+    console.print(f"[red]Scan #{scan_id} introuvable : voir `fsaudit scans`.[/red]")
+    raise typer.Exit(code=1)
+
+
 def check_scan_exists(conn: sqlite3.Connection, scan_id: int) -> None:
-    if all(row["id"] != scan_id for row in database.list_scans(conn)):
-        console.print(f"[red]Scan #{scan_id} introuvable : voir `fsaudit scans`.[/red]")
-        raise typer.Exit(code=1)
+    scan_root(conn, scan_id)
 
 
 def pick_scan(conn: sqlite3.Connection, scan_id: int | None) -> int:
@@ -154,3 +161,27 @@ def diff(
     rows += [["modifié", path] for path in result.modified]
     rows += [["déplacé", f"{before} -> {after}"] for before, after in result.moved]
     print_table(f"Diff scan #{old} -> #{new}", ["Changement", "Fichier"], rows)
+
+
+@app.command()
+def backup(
+    dest: Annotated[Path, typer.Argument(file_okay=False, help="Dossier de sauvegarde")],
+    scan_id: ScanOption = None,
+) -> None:
+    """Copie les fichiers d'un scan vers un dossier, sans recopier ceux déjà à jour."""
+    with closing(database.connect(config.DB_PATH)) as conn:
+        chosen = pick_scan(conn, scan_id)
+        source = scan_root(conn, chosen)
+        if dest.resolve().is_relative_to(source.resolve()):
+            console.print(
+                "[red]Le dossier de sauvegarde ne doit pas être dans le dossier scanné.[/red]"
+            )
+            raise typer.Exit(code=1)
+        result = run_backup(conn, chosen, source, dest)
+    console.print(
+        f"Backup du scan #{chosen} vers {dest} : {len(result.copied)} copiés, "
+        f"{len(result.skipped)} déjà à jour, {len(result.failed)} en erreur"
+    )
+    if result.failed:
+        print_table("Fichiers non copiés", ["Fichier"], [[path] for path in result.failed])
+        raise typer.Exit(code=1)
