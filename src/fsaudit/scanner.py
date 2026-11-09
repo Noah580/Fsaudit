@@ -17,14 +17,8 @@ def matches(name: str, patterns: list[str]) -> bool:
 
 
 def hash_file(path: Path) -> str:
-    sha = hashlib.sha256()
     with path.open("rb") as file:
-        while True:
-            chunk = file.read(1024 * 1024)
-            if not chunk:
-                break
-            sha.update(chunk)
-    return sha.hexdigest()
+        return hashlib.file_digest(file, "sha256").hexdigest()
 
 
 def inspect_file(path: Path, root: Path) -> FileInfo:

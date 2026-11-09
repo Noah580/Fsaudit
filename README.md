@@ -55,7 +55,7 @@ Base de données : une table `scans` (id, dossier, date) et une table `files` (u
 | --- | --- | --- |
 | Code | `scanner.py`, `database.py`, `models.py`, `config.py`, `logs.py` | `analysis.py`, `cli.py`, `__main__.py` |
 | Tests | `tests/test_scanner.py` | `tests/test_analysis.py`, `tests/test_cli.py` |
-| À expliquer | parcours `os.walk` et exclusions, hash SHA-256 par blocs, type MIME, schéma SQLite et requêtes paramétrées, `.env`, logging console/fichier, gestion des erreurs sans arrêt du scan | requêtes doublons / top / extensions (`GROUP BY`), algorithme du diff par ensembles, commandes Typer et options, tableaux rich, `CliRunner` dans les tests |
+| À expliquer | parcours `os.walk` et exclusions, hash SHA-256, type MIME, schéma SQLite et requêtes paramétrées, `.env`, logging console/fichier, gestion des erreurs sans arrêt du scan | requêtes doublons / top / extensions (`GROUP BY`), algorithme du diff par ensembles, commandes Typer et options, tableaux rich, `CliRunner` dans les tests |
 
 En commun : `pyproject.toml`, ruff / mypy, README, dépôt GitHub.
 
@@ -75,7 +75,7 @@ Déroulé de la soutenance (15 min) :
 - **SQLite via `sqlite3`** : inclus dans Python, un simple fichier, pas de serveur. Toutes les requêtes sont paramétrées avec `?` (jamais de f-string) contre l'injection SQL.
 - **`os.walk`** plutôt que `rglob` : on peut retirer des dossiers de `dirnames` pendant le parcours, donc un dossier exclu (`.git`) n'est même pas ouvert. `onerror` logge les dossiers illisibles sans arrêter le scan.
 - **`fnmatch`** pour `--exclude` / `--include` : motifs shell (`*.jpg`) que tout le monde connaît, sans toucher au disque.
-- **SHA-256 par blocs de 1 Mo** : le hash sert à détecter les doublons et les fichiers modifiés/déplacés, quel que soit le nom. Lecture par blocs pour ne pas charger un gros fichier en mémoire. MD5 est évité car obsolète.
+- **SHA-256 avec `hashlib.file_digest`** : le hash sert à détecter les doublons et les fichiers modifiés/déplacés, quel que soit le nom. `file_digest` lit le fichier par blocs pour nous, donc pas de gros fichier chargé en mémoire. MD5 est évité car obsolète.
 - **Chemins stockés relatifs au dossier scanné** : tableaux plus courts et `diff` possible entre deux dossiers différents (par exemple un original et sa sauvegarde).
 - **Dates en UTC ISO 8601** : recommandation du cours, non ambigu.
 - **Générateur `yield` dans `scan()`** : les fichiers sont produits un par un, le scan ne stocke jamais toute l'arborescence en mémoire.

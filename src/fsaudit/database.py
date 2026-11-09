@@ -8,12 +8,12 @@ from fsaudit.models import FileInfo
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS scans (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     root TEXT NOT NULL,
     scanned_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS files (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     scan_id INTEGER NOT NULL REFERENCES scans(id),
     path TEXT NOT NULL,
     name TEXT NOT NULL,
@@ -54,16 +54,12 @@ def insert_files(conn: sqlite3.Connection, scan_id: int, files: Iterable[FileInf
 
 
 def list_scans(conn: sqlite3.Connection) -> list[sqlite3.Row]:
-    return conn.execute(
-        "SELECT scans.id, root, scanned_at, COUNT(files.id) AS files"
-        " FROM scans LEFT JOIN files ON files.scan_id = scans.id"
-        " GROUP BY scans.id ORDER BY scans.id DESC"
-    ).fetchall()
+    return conn.execute("SELECT * FROM scans ORDER BY id DESC").fetchall()
 
 
 def latest_scan_id(conn: sqlite3.Connection) -> int | None:
-    row = conn.execute("SELECT MAX(id) AS id FROM scans").fetchone()
-    if row["id"] is None:
+    row = conn.execute("SELECT id FROM scans ORDER BY id DESC LIMIT 1").fetchone()
+    if row is None:
         return None
     return int(row["id"])
 

@@ -76,8 +76,8 @@ def scans() -> None:
         rows = database.list_scans(conn)
     print_table(
         "Scans",
-        ["Id", "Dossier", "Date (UTC)", "Fichiers"],
-        [[str(r["id"]), r["root"], r["scanned_at"][:19], str(r["files"])] for r in rows],
+        ["Id", "Dossier", "Date (UTC)"],
+        [[str(r["id"]), r["root"], r["scanned_at"][:19]] for r in rows],
     )
 
 
