@@ -45,7 +45,7 @@ src/fsaudit/
   database.py   schéma SQLite, insertion, liste des scans
   analysis.py   les analyses : doublons, top, répartition par extension
   backup.py     extension : copie des fichiers d'un scan vers un dossier de sauvegarde
-tests/          un fichier de tests par couche (scanner, analyse, backup, cli)
+tests/          un fichier de tests par couche (scanner, analyse, cli)
 ```
 
 Un fichier = une responsabilité (principe SRP du cours). Le flux est toujours le même : `cli.py` lit les options, appelle `scanner`/`database`/`analysis`, puis affiche.
@@ -57,7 +57,7 @@ Base de données : une table `scans` (id, dossier, date) et une table `files` (u
 | | Matthieu : indexation | Noah : analyses et CLI |
 | --- | --- | --- |
 | Code | `scanner.py`, `database.py`, `models.py`, `config.py`, `logs.py` | `analysis.py`, `cli.py`, `__main__.py`, `backup.py` |
-| Tests | `tests/test_scanner.py` | `tests/test_analysis.py`, `tests/test_cli.py`, `tests/test_backup.py` |
+| Tests | `tests/test_scanner.py` | `tests/test_analysis.py`, `tests/test_cli.py` |
 | À expliquer | parcours `os.walk` et exclusions, hash SHA-256, type MIME, schéma SQLite et requêtes paramétrées, `.env`, logging console/fichier, gestion des erreurs sans arrêt du scan | requêtes doublons / top / extensions (`GROUP BY`), commandes Typer et options, tableaux rich, `CliRunner` dans les tests, extension `backup` |
 
 En commun : `pyproject.toml`, ruff / mypy, README, dépôt GitHub.
@@ -106,7 +106,7 @@ uv run mypy
 - **`shutil.copy2`** : copie le contenu et conserve la date de modification du fichier.
 - **Erreurs** : un fichier impossible à copier (supprimé depuis le scan, droits) est loggé en WARNING et le backup continue ; la commande liste ces fichiers et se termine avec le code 1.
 - **Sécurité** : le dossier de sauvegarde ne peut pas être dans le dossier scanné, sinon chaque nouveau scan indexerait la sauvegarde elle-même.
-- Logique dans `backup.py` (même découpage que `analysis.py`), la CLI ne fait qu'appeler et afficher. Testé dans `tests/test_backup.py` et `tests/test_cli.py`.
+- Logique dans `backup.py` (même découpage que `analysis.py`), la CLI ne fait qu'appeler et afficher. Testé dans `tests/test_cli.py`.
 
 ## Pistes d'extension
 
