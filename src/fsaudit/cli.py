@@ -36,12 +36,21 @@ def print_table(title: str, columns: list[str], rows: list[list[str]]) -> None:
     console.print(table)
 
 
+def check_scan_exists(conn: sqlite3.Connection, scan_id: int) -> None:
+    if all(row["id"] != scan_id for row in database.list_scans(conn)):
+        console.print(f"[red]Scan #{scan_id} introuvable : voir `fsaudit scans`.[/red]")
+        raise typer.Exit(code=1)
+
+
 def pick_scan(conn: sqlite3.Connection, scan_id: int | None) -> int:
-    chosen = scan_id or database.latest_scan_id(conn)
-    if chosen is None:
+    if scan_id is not None:
+        check_scan_exists(conn, scan_id)
+        return scan_id
+    latest = database.latest_scan_id(conn)
+    if latest is None:
         console.print("[red]Aucun scan en base : lancez d'abord `fsaudit scan <dossier>`.[/red]")
         raise typer.Exit(code=1)
-    return chosen
+    return latest
 
 
 ScanOption = Annotated[
@@ -103,7 +112,7 @@ def dupes(scan_id: ScanOption = None) -> None:
 
 @app.command()
 def top(
-    limit: Annotated[int, typer.Option("--limit", "-n", help="Nombre de fichiers")] = 10,
+    limit: Annotated[int, typer.Option("--limit", "-n", min=1, help="Nombre de fichiers")] = 10,
     scan_id: ScanOption = None,
 ) -> None:
     """Affiche les fichiers les plus volumineux."""
@@ -137,6 +146,8 @@ def diff(
 ) -> None:
     """Compare deux scans : ajoutés, supprimés, modifiés, déplacés."""
     with closing(database.connect(config.DB_PATH)) as conn:
+        check_scan_exists(conn, old)
+        check_scan_exists(conn, new)
         result = analysis.diff(conn, old, new)
     rows = [["ajouté", path] for path in result.added]
     rows += [["supprimé", path] for path in result.removed]

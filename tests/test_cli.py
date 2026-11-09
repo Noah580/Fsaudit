@@ -63,3 +63,20 @@ def test_log_file_is_written(workspace: Path) -> None:
     runner.invoke(cli.app, ["scan", str(workspace)])
     log = config.LOG_PATH.read_text(encoding="utf-8")
     assert "Début du scan" in log
+
+
+def test_unknown_scan_fails(workspace: Path) -> None:
+    runner.invoke(cli.app, ["scan", str(workspace)])
+    result = runner.invoke(cli.app, ["top", "--scan", "42"])
+    assert result.exit_code == 1
+    assert "Scan #42 introuvable" in result.output
+
+    result = runner.invoke(cli.app, ["diff", "1", "99"])
+    assert result.exit_code == 1
+    assert "Scan #99 introuvable" in result.output
+
+
+def test_top_rejects_negative_limit(workspace: Path) -> None:
+    runner.invoke(cli.app, ["scan", str(workspace)])
+    result = runner.invoke(cli.app, ["top", "-n", "-1"])
+    assert result.exit_code == 2
